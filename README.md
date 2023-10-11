@@ -1,4 +1,4 @@
-# CatBox for Android
+# AirFly for Android
 
 
 [![API](https://img.shields.io/badge/API-21%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=21)
@@ -66,7 +66,7 @@ Please visit [here](https://AntiNeko.github.io/m-plugin/) to download plugins.
 #### 获取源代码
 
 ```shell
-git clone https://github.com/AntiNeko/CatBoxForAndroid.git
+git clone https://github.com/DavidYordan/AirFly.git
 ```
 
 #### libcore
