@@ -21,7 +21,16 @@
             android:layout_height="match_parent"
             android:fitsSystemWindows="true" />
 
-        <!-- We double trackThickness as half of it will be invisible -->
+        <EditText
+            android:id="@+id/inputEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="500dp"
+            android:visibility="gone"
+            android:inputType="textUri"
+            app:layout_anchor="@id/fabProgress"
+            app:layout_anchorGravity="top" />
+
         <com.google.android.material.progressindicator.CircularProgressIndicator
             android:id="@+id/fabProgress"
             android:layout_width="wrap_content"
@@ -34,18 +43,6 @@
             app:layout_behavior="io.nekohasekai.sagernet.widget.FabProgressBehavior"
             app:trackCornerRadius="@dimen/mtrl_progress_track_thickness"
             app:trackThickness="8dp" />
-
-        <EditText
-            android:id="@+id/inputEditText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="500dp"
-            android:hint="Enter URL"
-            android:visibility="gone"
-            android:inputType="textUri"
-            android:nextFocusDown="@id/stats"
-            app:layout_anchor="@id/fab"
-            app:layout_anchorGravity="top" />
 
         <io.nekohasekai.sagernet.widget.ServiceButton
             android:id="@+id/fab"
