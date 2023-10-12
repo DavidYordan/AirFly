@@ -88,10 +88,8 @@ class MainActivity : ThemedActivity(),
         }
 
         binding.fab.setOnClickListener {
-            var inputEditText = binding.inputEditText
             if (DataStore.serviceState.canStop) SagerNet.stopService() else {
-                inputEditText.visibility = View.VISIBLE
-//                connect.launch(null)
+                connect.launch(null)
             }
         }
 
@@ -102,6 +100,8 @@ class MainActivity : ThemedActivity(),
 
             override fun afterTextChanged(s: Editable?) {
                 val text = s.toString()
+                s?.clear()
+                binding.inputEditText.visibility = View.GONE
                 importUrl(text)
             }
         })
@@ -132,6 +132,14 @@ class MainActivity : ThemedActivity(),
         }
 
         refreshNavMenu(DataStore.enableClashAPI)
+
+        onBackPressedDispatcher.addCallback(this) {
+            if (binding.inputEditText.visibility == View.VISIBLE) {
+                binding.inputEditText.visibility = View.GONE
+            } else {
+                binding.inputEditText.visibility = View.VISIBLE
+            }
+        }
     }
 
     fun refreshNavMenu(clashApi: Boolean) {
