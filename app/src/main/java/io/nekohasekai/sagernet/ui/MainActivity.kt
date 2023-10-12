@@ -14,6 +14,7 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.view.KeyEvent
 import android.view.MenuItem
+import android.view.View
 import android.widget.EditText
 import androidx.activity.addCallback
 import androidx.annotation.IdRes
@@ -41,7 +42,6 @@ import io.nekohasekai.sagernet.group.GroupUpdater
 import io.nekohasekai.sagernet.group.RawUpdater
 import io.nekohasekai.sagernet.ktx.*
 import io.nekohasekai.sagernet.widget.ListHolderListener
-import kotlinx.coroutines.GlobalScope
 import libcore.Libcore
 import moe.matsuri.nb4a.utils.Util
 import java.text.SimpleDateFormat
@@ -93,22 +93,8 @@ class MainActivity : ThemedActivity(),
 //            )
             if (DataStore.serviceState.canStop) {
                 SagerNet.stopService()
-            } else runOnDefaultDispatcher  {
-                val inputEditText = EditText(this@MainActivity)
-                val alertDialog = AlertDialog.Builder(this@MainActivity)
-                    .setTitle("Enter URL")
-                    .setView(inputEditText)
-                    .setPositiveButton("Import") { dialog, which ->
-                        val text = inputEditText.text.toString()
-                        dialog.dismiss()
-                        importUrl(text)
-                    }
-                    .setNegativeButton("Cancel") { dialog, which ->
-                        dialog.dismiss()
-                    }
-                    .create()
-
-                alertDialog.show()
+            } else {
+                val inputEditText = binding.inputEditText
 
                 inputEditText.addTextChangedListener(object : TextWatcher {
                     override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -116,9 +102,13 @@ class MainActivity : ThemedActivity(),
                     override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
 
                     override fun afterTextChanged(s: Editable?) {
-                        alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+                        val text = s.toString()
+                        inputEditText.visibility = View.GONE
+                        importUrl(text)
                     }
                 })
+
+                inputEditText.visibility = View.VISIBLE
             }
         }
         binding.stats.setOnClickListener { if (DataStore.serviceState.connected) binding.stats.testConnection() }
