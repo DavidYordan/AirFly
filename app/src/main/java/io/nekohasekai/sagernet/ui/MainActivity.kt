@@ -88,29 +88,24 @@ class MainActivity : ThemedActivity(),
         }
 
         binding.fab.setOnClickListener {
-//            if (DataStore.serviceState.canStop) SagerNet.stopService() else connect.launch(
-//                null
-//            )
-            if (DataStore.serviceState.canStop) {
-                SagerNet.stopService()
-            } else {
-                val inputEditText = binding.inputEditText
-
-                inputEditText.addTextChangedListener(object : TextWatcher {
-                    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-
-                    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-
-                    override fun afterTextChanged(s: Editable?) {
-                        val text = s.toString()
-                        inputEditText.visibility = View.GONE
-                        importUrl(text)
-                    }
-                })
-
+            var inputEditText = binding.inputEditText
+            if (DataStore.serviceState.canStop) SagerNet.stopService() else {
                 inputEditText.visibility = View.VISIBLE
+//                connect.launch(null)
             }
         }
+
+        binding.inputEditText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+
+            override fun afterTextChanged(s: Editable?) {
+                val text = s.toString()
+                importUrl(text)
+            }
+        })
+
         binding.stats.setOnClickListener { if (DataStore.serviceState.connected) binding.stats.testConnection() }
 
         setContentView(binding.root)
