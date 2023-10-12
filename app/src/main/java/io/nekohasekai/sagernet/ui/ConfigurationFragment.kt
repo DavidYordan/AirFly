@@ -17,6 +17,7 @@ import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.PopupMenu
+import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
@@ -46,6 +47,7 @@ import io.nekohasekai.sagernet.group.RawUpdater
 import io.nekohasekai.sagernet.ktx.*
 import io.nekohasekai.sagernet.plugin.PluginManager
 import io.nekohasekai.sagernet.ui.profile.*
+import io.nekohasekai.sagernet.utils.PackageCache
 import io.nekohasekai.sagernet.widget.QRCodeDialog
 import io.nekohasekai.sagernet.widget.UndoSnackbarManager
 import kotlinx.coroutines.*
@@ -53,8 +55,12 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import moe.matsuri.nb4a.Protocols
 import moe.matsuri.nb4a.Protocols.getProtocolColor
+import moe.matsuri.nb4a.plugin.NekoPluginManager
+import moe.matsuri.nb4a.proxy.config.ConfigSettingActivity
 import moe.matsuri.nb4a.proxy.neko.NekoJSInterface
+import moe.matsuri.nb4a.proxy.neko.NekoSettingActivity
 import moe.matsuri.nb4a.proxy.neko.canShare
+import moe.matsuri.nb4a.proxy.shadowtls.ShadowTLSSettingsActivity
 import okhttp3.internal.closeQuietly
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -71,6 +77,7 @@ class ConfigurationFragment @JvmOverloads constructor(
 ) : ToolbarFragment(R.layout.layout_group_list),
     PopupMenu.OnMenuItemClickListener,
     Toolbar.OnMenuItemClickListener,
+    SearchView.OnQueryTextListener,
     OnPreferenceDataStoreChangeListener {
 
     interface SelectCallback {
@@ -102,6 +109,13 @@ class ConfigurationFragment @JvmOverloads constructor(
         }
     }
 
+    override fun onQueryTextChange(query: String): Boolean {
+        getCurrentGroupFragment()?.adapter?.filter(query)
+        return false
+    }
+
+    override fun onQueryTextSubmit(query: String): Boolean = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -126,6 +140,12 @@ class ConfigurationFragment @JvmOverloads constructor(
             toolbar.setNavigationOnClickListener {
                 requireActivity().finish()
             }
+        }
+
+        val searchView = toolbar.findViewById<SearchView>(R.id.action_search)
+        if (searchView != null) {
+            searchView.setOnQueryTextListener(this)
+            searchView.maxWidth = Int.MAX_VALUE
         }
 
         groupPager = view.findViewById(R.id.group_pager)
@@ -275,6 +295,9 @@ class ConfigurationFragment @JvmOverloads constructor(
 
     override fun onMenuItemClick(item: MenuItem): Boolean {
         when (item.itemId) {
+            R.id.action_scan_qr_code -> {
+                startActivity(Intent(context, ScannerActivity::class.java))
+            }
 
             R.id.action_import_clipboard -> {
                 val text = SagerNet.getClipboardText()
@@ -302,6 +325,100 @@ class ConfigurationFragment @JvmOverloads constructor(
                 startFilesForResult(importFile, "*/*")
             }
 
+            R.id.action_new_socks -> {
+                startActivity(Intent(requireActivity(), SocksSettingsActivity::class.java))
+            }
+
+            R.id.action_new_http -> {
+                startActivity(Intent(requireActivity(), HttpSettingsActivity::class.java))
+            }
+
+            R.id.action_new_ss -> {
+                startActivity(Intent(requireActivity(), ShadowsocksSettingsActivity::class.java))
+            }
+
+            R.id.action_new_vmess -> {
+                startActivity(Intent(requireActivity(), VMessSettingsActivity::class.java))
+            }
+
+            R.id.action_new_vless -> {
+                startActivity(Intent(requireActivity(), VMessSettingsActivity::class.java).apply {
+                    putExtra("vless", true)
+                })
+            }
+
+            R.id.action_new_trojan -> {
+                startActivity(Intent(requireActivity(), TrojanSettingsActivity::class.java))
+            }
+
+            R.id.action_new_trojan_go -> {
+                startActivity(Intent(requireActivity(), TrojanGoSettingsActivity::class.java))
+            }
+
+            R.id.action_new_naive -> {
+                startActivity(Intent(requireActivity(), NaiveSettingsActivity::class.java))
+            }
+
+            R.id.action_new_hysteria -> {
+                startActivity(Intent(requireActivity(), HysteriaSettingsActivity::class.java))
+            }
+
+            R.id.action_new_tuic -> {
+                startActivity(Intent(requireActivity(), TuicSettingsActivity::class.java))
+            }
+
+            R.id.action_new_ssh -> {
+                startActivity(Intent(requireActivity(), SSHSettingsActivity::class.java))
+            }
+
+            R.id.action_new_wg -> {
+                startActivity(Intent(requireActivity(), WireGuardSettingsActivity::class.java))
+            }
+
+            R.id.action_new_shadowtls -> {
+                startActivity(Intent(requireActivity(), ShadowTLSSettingsActivity::class.java))
+            }
+
+            R.id.action_new_config -> {
+                startActivity(Intent(requireActivity(), ConfigSettingActivity::class.java))
+            }
+
+            R.id.action_new_chain -> {
+                startActivity(Intent(requireActivity(), ChainSettingsActivity::class.java))
+            }
+
+            R.id.action_new_neko -> {
+                val context = requireContext()
+                lateinit var dialog: AlertDialog
+                val linearLayout = LinearLayout(context).apply {
+                    orientation = LinearLayout.VERTICAL
+
+                    NekoPluginManager.getProtocols().forEach { obj ->
+                        LayoutAppsItemBinding.inflate(layoutInflater, this, true).apply {
+                            itemcheck.isGone = true
+                            button.isGone = false
+                            itemicon.setImageDrawable(
+                                PackageCache.installedApps[obj.plgId]?.loadIcon(
+                                    context.packageManager
+                                )
+                            )
+                            title.text = obj.protocolId
+                            desc.text = obj.plgId
+                            button.setOnClickListener {
+                                dialog.dismiss()
+                                val intent = Intent(context, NekoSettingActivity::class.java)
+                                intent.putExtra("plgId", obj.plgId)
+                                intent.putExtra("protocolId", obj.protocolId)
+                                startActivity(intent)
+                            }
+                        }
+                    }
+                }
+                dialog = MaterialAlertDialogBuilder(context).setTitle(R.string.neko_plugin)
+                    .setView(linearLayout)
+                    .show()
+            }
+
             R.id.action_clear_traffic_statistics -> {
                 runOnDefaultDispatcher {
                     val profiles = SagerDatabase.proxyDao.getByGroup(DataStore.currentGroupId())
@@ -317,6 +434,123 @@ class ConfigurationFragment @JvmOverloads constructor(
                         ProfileManager.updateProfile(toClear)
                     }
                 }
+            }
+
+            R.id.action_connection_test_clear_results -> {
+                runOnDefaultDispatcher {
+                    val profiles = SagerDatabase.proxyDao.getByGroup(DataStore.currentGroupId())
+                    val toClear = mutableListOf<ProxyEntity>()
+                    if (profiles.isNotEmpty()) for (profile in profiles) {
+                        if (profile.status != 0) {
+                            profile.status = 0
+                            profile.ping = 0
+                            profile.error = null
+                            toClear.add(profile)
+                        }
+                    }
+                    if (toClear.isNotEmpty()) {
+                        ProfileManager.updateProfile(toClear)
+                    }
+                }
+            }
+
+            R.id.action_connection_test_delete_unavailable -> {
+                runOnDefaultDispatcher {
+                    val profiles = SagerDatabase.proxyDao.getByGroup(DataStore.currentGroupId())
+                    val toClear = mutableListOf<ProxyEntity>()
+                    if (profiles.isNotEmpty()) for (profile in profiles) {
+                        if (profile.status != 0 && profile.status != 1) {
+                            toClear.add(profile)
+                        }
+                    }
+                    if (toClear.isNotEmpty()) {
+                        onMainDispatcher {
+                            MaterialAlertDialogBuilder(requireContext()).setTitle(R.string.confirm)
+                                .setMessage(R.string.delete_confirm_prompt)
+                                .setPositiveButton(R.string.yes) { _, _ ->
+                                    for (profile in toClear) {
+                                        adapter.groupFragments[DataStore.selectedGroup]?.adapter?.apply {
+                                            val index = configurationIdList.indexOf(profile.id)
+                                            if (index >= 0) {
+                                                configurationIdList.removeAt(index)
+                                                configurationList.remove(profile.id)
+                                                notifyItemRemoved(index)
+                                            }
+                                        }
+                                    }
+                                    runOnDefaultDispatcher {
+                                        for (profile in toClear) {
+                                            ProfileManager.deleteProfile2(
+                                                profile.groupId, profile.id
+                                            )
+                                        }
+                                    }
+                                }
+                                .setNegativeButton(R.string.no, null)
+                                .show()
+                        }
+                    }
+                }
+            }
+
+            R.id.action_remove_duplicate -> {
+                runOnDefaultDispatcher {
+                    val profiles = SagerDatabase.proxyDao.getByGroup(DataStore.currentGroupId())
+                    val toClear = mutableListOf<ProxyEntity>()
+                    val uniqueProxies = LinkedHashSet<Protocols.Deduplication>()
+                    for (pf in profiles) {
+                        val proxy = Protocols.Deduplication(pf.requireBean(), pf.displayType())
+                        if (!uniqueProxies.add(proxy)) {
+                            toClear += pf
+                        }
+                    }
+                    if (toClear.isNotEmpty()) {
+                        onMainDispatcher {
+                            MaterialAlertDialogBuilder(requireContext()).setTitle(R.string.confirm)
+                                .setMessage(
+                                    getString(R.string.delete_confirm_prompt) + "\n" +
+                                            toClear.mapIndexedNotNull { index, proxyEntity ->
+                                                if (index < 20) {
+                                                    proxyEntity.displayName()
+                                                } else if (index == 20) {
+                                                    "......"
+                                                } else {
+                                                    null
+                                                }
+                                            }.joinToString("\n")
+                                )
+                                .setPositiveButton(R.string.yes) { _, _ ->
+                                    for (profile in toClear) {
+                                        adapter.groupFragments[DataStore.selectedGroup]?.adapter?.apply {
+                                            val index = configurationIdList.indexOf(profile.id)
+                                            if (index >= 0) {
+                                                configurationIdList.removeAt(index)
+                                                configurationList.remove(profile.id)
+                                                notifyItemRemoved(index)
+                                            }
+                                        }
+                                    }
+                                    runOnDefaultDispatcher {
+                                        for (profile in toClear) {
+                                            ProfileManager.deleteProfile2(
+                                                profile.groupId, profile.id
+                                            )
+                                        }
+                                    }
+                                }
+                                .setNegativeButton(R.string.no, null)
+                                .show()
+                        }
+                    }
+                }
+            }
+
+            R.id.action_connection_tcp_ping -> {
+                pingTest(false)
+            }
+
+            R.id.action_connection_url_test -> {
+                urlTest()
             }
         }
         return true
@@ -822,7 +1056,55 @@ class ConfigurationFragment @JvmOverloads constructor(
             } else if (!::configurationListView.isInitialized) {
                 onViewCreated(requireView(), null)
             }
+            checkOrderMenu()
             configurationListView.requestFocus()
+        }
+
+        fun checkOrderMenu() {
+            if (select) return
+
+            val pf = requireParentFragment() as? ToolbarFragment ?: return
+            val menu = pf.toolbar.menu
+            val origin = menu.findItem(R.id.action_order_origin)
+            val byName = menu.findItem(R.id.action_order_by_name)
+            val byDelay = menu.findItem(R.id.action_order_by_delay)
+            when (proxyGroup.order) {
+                GroupOrder.ORIGIN -> {
+                    origin.isChecked = true
+                }
+
+                GroupOrder.BY_NAME -> {
+                    byName.isChecked = true
+                }
+
+                GroupOrder.BY_DELAY -> {
+                    byDelay.isChecked = true
+                }
+            }
+
+            fun updateTo(order: Int) {
+                if (proxyGroup.order == order) return
+                runOnDefaultDispatcher {
+                    proxyGroup.order = order
+                    GroupManager.updateGroup(proxyGroup)
+                }
+            }
+
+            origin.setOnMenuItemClickListener {
+                it.isChecked = true
+                updateTo(GroupOrder.ORIGIN)
+                true
+            }
+            byName.setOnMenuItemClickListener {
+                it.isChecked = true
+                updateTo(GroupOrder.BY_NAME)
+                true
+            }
+            byDelay.setOnMenuItemClickListener {
+                it.isChecked = true
+                updateTo(GroupOrder.BY_DELAY)
+                true
+            }
         }
 
         override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
