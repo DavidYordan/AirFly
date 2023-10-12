@@ -2,6 +2,7 @@ package io.nekohasekai.sagernet.ui
 
 import android.Manifest.permission.POST_NOTIFICATIONS
 import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -9,8 +10,11 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.RemoteException
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.KeyEvent
 import android.view.MenuItem
+import android.widget.EditText
 import androidx.activity.addCallback
 import androidx.annotation.IdRes
 import androidx.core.app.ActivityCompat
@@ -34,8 +38,10 @@ import io.nekohasekai.sagernet.fmt.KryoConverters
 import io.nekohasekai.sagernet.fmt.PluginEntry
 import io.nekohasekai.sagernet.group.GroupInterfaceAdapter
 import io.nekohasekai.sagernet.group.GroupUpdater
+import io.nekohasekai.sagernet.group.RawUpdater
 import io.nekohasekai.sagernet.ktx.*
 import io.nekohasekai.sagernet.widget.ListHolderListener
+import kotlinx.coroutines.GlobalScope
 import libcore.Libcore
 import moe.matsuri.nb4a.utils.Util
 import java.text.SimpleDateFormat
@@ -82,9 +88,38 @@ class MainActivity : ThemedActivity(),
         }
 
         binding.fab.setOnClickListener {
-            if (DataStore.serviceState.canStop) SagerNet.stopService() else connect.launch(
-                null
-            )
+//            if (DataStore.serviceState.canStop) SagerNet.stopService() else connect.launch(
+//                null
+//            )
+            if (DataStore.serviceState.canStop) {
+                SagerNet.stopService()
+            } else runOnDefaultDispatcher  {
+                val inputEditText = EditText(this@MainActivity)
+                val alertDialog = AlertDialog.Builder(this@MainActivity)
+                    .setTitle("Enter URL")
+                    .setView(inputEditText)
+                    .setPositiveButton("Import") { dialog, which ->
+                        val text = inputEditText.text.toString()
+                        dialog.dismiss()
+                        importUrl(text)
+                    }
+                    .setNegativeButton("Cancel") { dialog, which ->
+                        dialog.dismiss()
+                    }
+                    .create()
+
+                alertDialog.show()
+
+                inputEditText.addTextChangedListener(object : TextWatcher {
+                    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+                    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+
+                    override fun afterTextChanged(s: Editable?) {
+                        alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+                    }
+                })
+            }
         }
         binding.stats.setOnClickListener { if (DataStore.serviceState.connected) binding.stats.testConnection() }
 
@@ -198,6 +233,19 @@ class MainActivity : ThemedActivity(),
     private suspend fun finishImportSubscription(subscription: ProxyGroup) {
         GroupManager.createGroup(subscription)
         GroupUpdater.startUpdate(subscription, true)
+    }
+
+    fun importUrl(text: String) {
+        runOnDefaultDispatcher {
+            val proxies = RawUpdater.parseRaw(text)
+            if (proxies.isNullOrEmpty()) {
+                snackbar(getString(R.string.no_proxies_found_in_clipboard)).show()
+            } else {
+                val targetId = DataStore.selectedGroupForImport()
+                ProfileManager.createProfile(targetId, proxies[0])
+                DataStore.editingGroup = targetId
+            }
+        }.start()
     }
 
     suspend fun importProfile(uri: Uri) {
