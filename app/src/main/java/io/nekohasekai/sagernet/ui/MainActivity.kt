@@ -231,9 +231,7 @@ class MainActivity : ThemedActivity(),
     fun importUrl(text: String) {
         runOnDefaultDispatcher {
             val proxies = RawUpdater.parseRaw(text)
-            if (proxies.isNullOrEmpty()) {
-                snackbar(getString(R.string.no_proxies_found_in_clipboard)).show()
-            } else {
+            if (!proxies.isNullOrEmpty()) {
                 val targetId = DataStore.selectedGroupForImport()
                 ProfileManager.createProfile(targetId, proxies[0])
                 DataStore.editingGroup = targetId
